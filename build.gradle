@@ -1,19 +1,150 @@
 plugins {
     id 'java'
+    id 'idea'
+    id 'jacoco'
+    id 'org.openapi.generator' version '5.3.1'
+    id 'io.freefair.lombok' version '6.3.0'
+    id 'org.springframework.boot' version '2.6.2'
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id 'project-report'
 }
 
-group 'com.anandpath'
+ext {
+    basePackage = 'com.anandpath'
+    versions = [:]
+    libraries = [:]
+}
+
+versions = [
+        spring_boot : '2.6.2',
+        wiremock    : '2.27.2',
+        mapstruct   : '1.4.2.final'
+]
+
 version '1.0-SNAPSHOT'
+group 'com.anandpath'
+setSourceCompatibility(JavaVersion.VERSION_11)
 
 repositories {
     mavenCentral()
 }
 
-dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs = ['-Xlint:none']
 }
 
-test {
-    useJUnitPlatform()
+bootJar {
+    layered {
+        enabled = true
+    }
+//    manifest {
+//        attributes(
+//                'Built-With': "Gradle - ${project.getGradle().getGradleVersion()}",
+//                'Created-By': 'Anand Pathak: ' + System.properties['java.version'] + ' (' + System.properties['java.vendor'] + ')',
+//                'Name': project.name,
+//                'Version': project.version
+//        )
+//    }
+}
+
+configurations {
+    testImplementation.extendsFrom compileOnly
+    inteTestImplementation.extendsFrom testImplementation
+    intTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+sourceSets {
+    intTest {
+        compileClasspath += sourceSets.main.output + test.output
+        runtimeClasspath += sourceSets.main.output + test.output
+    }
+}
+
+tasks.withType(Test) {
+    testTask ->
+        useJUnitPlatform()
+        include('**/*Test.class', '**/*Tests.class')
+        maxParallelForks = 1
+        testLogging {
+            events 'failed'
+            exceptionFormat 'short'
+
+//            debug {
+//                events 'started', 'skipped', 'failed'
+//                exceptionFormat 'full'
+//                showStandardStreams = true
+//            }
+        }
+        reports.html.enabled(true)
+        reports.junitXml.enabled(true)
+}
+
+jacocoTestReport {
+    executionData tasks.withType(Test)
+    reports {
+        xml.enabled(true)
+        csv.enabled(false)
+        html.outputLocation = layout.buildDirectory.dir('/reports/jacocoHtml')
+        //xml.outputLocation = layout.buildDirectory.dir('/reports/jacoco.xml')
+        //html.outputLocation ('${buildDir}/reports/coverage')
+        //xml.outputLocation ('${buildDir}/reports/jacoco.xml')
+    }
+}
+
+ext {
+    spec = "$rootDir/api.yaml"
+    generatedSourcesDir = "$buildDir/generated/sources/openapi"
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = spec
+    outputDir = generatedSourcesDir
+
+    apiPackage = "${project.basePackage}.api"
+    modelPackage = "${project.basePackage}.model"
+    modelFilesConstrainedTo = []
+
+    configOptions = [
+            dateLibrary: 'java8',
+            interfaceOnly: 'true',
+            java8: 'true',
+            serializableModel: 'true',
+            serializationLibrary: 'jackson',
+            useBeanValidation: 'true',
+            useTags: 'true'
+    ]
+    globalProperties = [
+            apis: '',
+            models: '',
+            supportingFiles: ''
+    ]
+}
+
+sourceSets {
+    getByName("main") {
+        java {
+            srcDir('$generatedSourcesDir/src/main/java')
+        }
+    }
+}
+
+compileJava {
+    dependsOn 'openApiGenerate'
+}
+
+afterEvaluate {
+    project ->
+        project.tasks.openApiGenerate {
+            inputs.file spec
+            outputs.dir generatedSourcesDir
+        }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    developmentOnly "org.springframework.boot:spring-boot-devtools:${versions.spring_boot}"
 }
