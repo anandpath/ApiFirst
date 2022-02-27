@@ -1,29 +1,26 @@
 plugins {
     id 'java'
-    id 'idea'
     id 'jacoco'
-    id 'org.openapi.generator' version '5.3.1'
-    id 'io.freefair.lombok' version '6.3.0'
-    id 'org.springframework.boot' version '2.6.2'
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id 'idea'
     id 'project-report'
+    id 'maven-publish'
+    id 'org.openapi.generator' version '5.4.0'
+    id 'io.freefair.lombok' version '6.4.1'
+    id 'org.springframework.boot' version '2.6.4'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'org.sonarqube' version '3.3'
+    id 'pl.allegro.tech.build.axion-release' version '1.13.6'
 }
 
 ext {
-    basePackage = 'com.anandpath'
-    versions = [:]
-    libraries = [:]
+    basePackage = 'in.anandpath'
+    spec = "$rootDir/api.yaml"
+    generatedSourcesDir = "$buildDir/generated/sources/openapi"
 }
 
-versions = [
-        spring_boot : '2.6.2',
-        wiremock    : '2.27.2',
-        mapstruct   : '1.4.2.final'
-]
-
+//apply from: 'version.gradle'
 version '1.0-SNAPSHOT'
-group 'com.anandpath'
-setSourceCompatibility(JavaVersion.VERSION_11)
+group basePackage
 
 repositories {
     mavenCentral()
@@ -33,6 +30,35 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.compilerArgs = ['-Xlint:none']
 }
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+}
+
+//jacocoTestCoverageVerification {
+//    violationRules {
+//        rule {
+//            limit {
+//                minimum = 0.5
+//            }
+//        }
+//
+//        rule {
+//            enabled = false
+//            element = 'CLASS'
+//            includes = ['org.gradle.*']
+//
+//            limit {
+//                counter = 'LINE'
+//                value = 'TOTALCOUNT'
+//                maximum = 0.3
+//            }
+//        }
+//    }
+//}
 
 bootJar {
     layered {
@@ -81,51 +107,44 @@ tasks.withType(Test) {
 }
 
 jacocoTestReport {
-    executionData tasks.withType(Test)
+    executionData test
     reports {
-        xml.enabled(true)
-        csv.enabled(false)
-        html.outputLocation = layout.buildDirectory.dir('/reports/jacocoHtml')
-        //xml.outputLocation = layout.buildDirectory.dir('/reports/jacoco.xml')
-        //html.outputLocation ('${buildDir}/reports/coverage')
-        //xml.outputLocation ('${buildDir}/reports/jacoco.xml')
+        xml.required = false
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('/reports/coverage')
     }
 }
 
-ext {
-    spec = "$rootDir/api.yaml"
-    generatedSourcesDir = "$buildDir/generated/sources/openapi"
-}
-
 openApiGenerate {
-    generatorName = "spring"
-    inputSpec = spec
-    outputDir = generatedSourcesDir
-
-    apiPackage = "${project.basePackage}.api"
-    modelPackage = "${project.basePackage}.model"
-    modelFilesConstrainedTo = []
-
-    configOptions = [
-            dateLibrary: 'java8',
-            interfaceOnly: 'true',
-            java8: 'true',
-            serializableModel: 'true',
-            serializationLibrary: 'jackson',
-            useBeanValidation: 'true',
-            useTags: 'true'
-    ]
     globalProperties = [
             apis: '',
             models: '',
             supportingFiles: ''
     ]
+    setGeneratorName("spring")
+    setInputSpec(spec)
+    setOutputDir(generatedSourcesDir)
+    apiPackage = "${project.basePackage}.api" as Object
+    modelPackage = "${project.basePackage}.model" as Object
+    setModelFilesConstrainedTo([])
+    setConfigOptions(
+            [
+                    dateLibrary         : 'java8',
+                    interfaceOnly       : 'true',
+                    java8               : 'true',
+                    serializableModel   : 'true',
+                    serializationLibrary: 'jackson',
+                    useBeanValidation   : 'true',
+                    useTags             : 'true'
+            ]
+    )
 }
 
+
 sourceSets {
-    getByName("main") {
+    main {
         java {
-            srcDir('$generatedSourcesDir/src/main/java')
+            srcDir("${generatedSourcesDir}/src/main/java")
         }
     }
 }
@@ -144,7 +163,12 @@ afterEvaluate {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web:2.6.3'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.1.13'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.6'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    developmentOnly "org.springframework.boot:spring-boot-devtools:${versions.spring_boot}"
+    developmentOnly 'org.springframework.boot:spring-boot-devtools:2.6.3'
 }

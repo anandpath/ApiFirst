@@ -1,4 +1,4 @@
-package com.anandpath.apifirst.petstore;
+package in.anandpath.apifirst.petstore;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

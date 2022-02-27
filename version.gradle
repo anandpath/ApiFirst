@@ -1,0 +1,26 @@
+scmVersion {
+    repository {
+        type = 'git'
+        remote = 'origin'
+    }
+    localOnly = true
+    tag {
+        prefix = 'v'
+        versionSeparator = ''
+    }
+    nextVersion {
+        suffix = 'snapshot'
+        separator = '-'
+    }
+    useHighestVersion = true
+    versionIncrementer 'incrementMinor'
+    branchVersionIncrementer = [
+            'feature/.*' : 'incrementMinor',
+            'bugfix/.*' : { c -> c.currentVersion.incrementPatchVersion() },
+            'release/.*' : 'incrementPatch'
+    ]
+    hooks {
+        pre 'commit'
+    }
+}
+version = scmVersion.version

@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: 'pet'
+server:
+  port: 8080
+  servlet:
+    context-path: '/'
+
+# swagger-ui config
+springdoc:
+  swagger-ui:
+    operationSorter: alpha
+    displayRequestDuration: true
