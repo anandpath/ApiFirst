@@ -1,10 +1,10 @@
 spring:
   application:
-    name: 'pet'
+    name: 'sample'
 server:
   port: 8080
   servlet:
-    context-path: '/'
+    context-path: '/sample'
 
 # swagger-ui config
 springdoc:

@@ -4,19 +4,44 @@ plugins {
     id 'idea'
     id 'project-report'
     id 'maven-publish'
-    id 'org.openapi.generator' version '5.4.0'
+    id 'org.openapi.generator' version '6.3.0'
     id 'io.freefair.lombok' version '6.4.1'
-    id 'org.springframework.boot' version '2.6.4'
-    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'org.springframework.boot' version '2.7.8'
+    id 'io.spring.dependency-management' version '1.1.0'
     id 'org.sonarqube' version '3.3'
     id 'pl.allegro.tech.build.axion-release' version '1.13.6'
 }
 
 ext {
-    basePackage = 'in.anandpath'
+    basePackage = 'in.anandpath.sample'
+    versions =[:]
     spec = "$rootDir/api.yaml"
     generatedSourcesDir = "$buildDir/generated/sources/openapi"
 }
+versions = [
+        spring_boot : '2.7.8',
+        wiremock    : '2.27.2',
+        jupiter_junit : '5.9.2',
+        mapstruct   : '1.4.2.final',
+        jackson_nullable: '0.2.4',
+        validation : '3.0.2',
+        spring_doc: '1.6.14'
+]
+
+dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${versions.spring_boot}")
+    implementation "org.springframework.boot:spring-boot-starter:${versions.spring_boot}"
+    implementation "org.springframework.boot:spring-boot-starter-web:${versions.spring_boot}"
+    //implementation "javax.validation:validation-api:${versions.validation}"
+    implementation "org.openapitools:jackson-databind-nullable:${versions.jackson_nullable}"
+    implementation "org.springdoc:springdoc-openapi-ui:${versions.spring_doc}"
+
+    developmentOnly "org.springframework.boot:spring-boot-devtools:${versions.spring_boot}"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${versions.jupiter_junit}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${versions.jupiter_junit}"
+}
+
 
 //apply from: 'version.gradle'
 version '1.0-SNAPSHOT'
@@ -122,16 +147,14 @@ openApiGenerate {
             supportingFiles: ''
     ]
     setGeneratorName("spring")
-    setInputSpec(spec)
+    inputSpec = spec
     setOutputDir(generatedSourcesDir)
     apiPackage = "${project.basePackage}.api" as Object
     modelPackage = "${project.basePackage}.model" as Object
     setModelFilesConstrainedTo([])
     setConfigOptions(
             [
-                    dateLibrary         : 'java8',
                     interfaceOnly       : 'true',
-                    java8               : 'true',
                     serializableModel   : 'true',
                     serializationLibrary: 'jackson',
                     useBeanValidation   : 'true',
@@ -144,7 +167,7 @@ openApiGenerate {
 sourceSets {
     main {
         java {
-            srcDir("${generatedSourcesDir}/src/main/java")
+            srcDir files("$generatedSourcesDir/src/main/java").builtBy('openApiGenerate')
         }
     }
 }
@@ -161,14 +184,4 @@ afterEvaluate {
         }
 }
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web:2.6.3'
-    implementation 'javax.validation:validation-api:2.0.1.Final'
-    implementation 'io.swagger.core.v3:swagger-annotations:2.1.13'
-    implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.6'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools:2.6.3'
-}
+
