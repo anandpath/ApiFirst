@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage("Demo") {
             steps {
-                echo "Selected: ${selectionChoice}"
+                echo "${selectionChoice} was selected"
             }
         }
     }
